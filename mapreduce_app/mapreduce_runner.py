@@ -1,86 +1,91 @@
 #!/usr/bin/env python3
 """
-MapReduce Runner: Orquestra o pipeline Map-Reduce
+MapReduce Runner: Orquestra o pipeline Map-Reduce em Python puro
 """
-import subprocess
 import sys
-from pathlib import Path
+import re
 import argparse
+from pathlib import Path
+from collections import defaultdict
+
+
+def run_map_phase(input_file):
+    """
+    Fase Map: le o arquivo de entrada e emite pares (palavra, 1).
+    Retorna uma lista de tuplas (palavra, contagem).
+    """
+    pairs = []
+    with open(input_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip().lower()
+            words = re.findall(r'\b\w+\b', line)
+            for word in words:
+                pairs.append((word, 1))
+    return pairs
+
+
+def run_shuffle_sort(pairs):
+    """
+    Fase Shuffle & Sort: ordena os pares pela chave (palavra).
+    """
+    return sorted(pairs, key=lambda x: x[0])
+
+
+def run_reduce_phase(sorted_pairs):
+    """
+    Fase Reduce: soma as contagens de cada palavra.
+    Retorna um dicionario {palavra: contagem}.
+    """
+    word_counts = defaultdict(int)
+    for word, count in sorted_pairs:
+        word_counts[word] += count
+    return dict(word_counts)
+
 
 def run_mapreduce(input_file, output_file):
     """
-    Executa o pipeline MapReduce completo
-    
+    Executa o pipeline MapReduce completo.
+
     Args:
-        input_file: Caminho do arquivo de entrada
-        output_file: Caminho do arquivo de saída
+        input_file: caminho do arquivo de entrada
+        output_file: caminho do arquivo de saida
     """
-    print("🚀 Iniciando processamento MapReduce...")
-    print(f"📂 Input: {input_file}")
-    print(f"📂 Output: {output_file}")
-    
-    # Verifica se o arquivo de entrada existe
+    print("Iniciando processamento MapReduce...")
+    print(f"Input:  {input_file}")
+    print(f"Output: {output_file}")
+
     if not Path(input_file).exists():
-        print(f"❌ Erro: Arquivo {input_file} não encontrado!")
+        print(f"Erro: arquivo '{input_file}' nao encontrado.")
         sys.exit(1)
-    
-    try:
-        # Fase MAP
-        print("📍 Fase 1: MAP - Processando palavras...")
-        with open(input_file, 'r') as f_in:
-            map_process = subprocess.Popen(
-                ['python3', 'mapper.py'],
-                stdin=f_in,
-                stdout=subprocess.PIPE,
-                text=True
-            )
-        
-        # Fase SORT (simulando shuffle)
-        print("📍 Fase 2: SHUFFLE & SORT - Organizando dados...")
-        sort_process = subprocess.Popen(
-            ['sort'],
-            stdin=map_process.stdout,
-            stdout=subprocess.PIPE,
-            text=True
-        )
-        map_process.stdout.close()
-        
-        # Fase REDUCE
-        print("📍 Fase 3: REDUCE - Agregando resultados...")
-        with open(output_file, 'w') as f_out:
-            reduce_process = subprocess.Popen(
-                ['python3', 'reducer.py'],
-                stdin=sort_process.stdout,
-                stdout=f_out,
-                text=True
-            )
-            sort_process.stdout.close()
-            reduce_process.wait()
-        
-        print(f"✅ Processamento concluído! Resultados em: {output_file}")
-        
-        # Exibe estatísticas
-        with open(output_file, 'r') as f:
-            lines = f.readlines()
-            print(f"📊 Total de palavras únicas: {len(lines)}")
-            
-        # Exibe top 10 palavras mais frequentes
-        print("\n🏆 Top 10 palavras mais frequentes:")
-        sorted_words = sorted(lines, key=lambda x: int(x.split('\t')[1]), reverse=True)
-        for i, line in enumerate(sorted_words[:10], 1):
-            word, count = line.strip().split('\t')
-            print(f"   {i}. {word}: {count}")
-            
-    except Exception as e:
-        print(f"❌ Erro durante o processamento: {e}")
-        sys.exit(1)
+
+    print("\nFase 1: MAP - processando palavras...")
+    pairs = run_map_phase(input_file)
+
+    print("Fase 2: SHUFFLE & SORT - ordenando dados...")
+    sorted_pairs = run_shuffle_sort(pairs)
+
+    print("Fase 3: REDUCE - agregando resultados...")
+    word_counts = run_reduce_phase(sorted_pairs)
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        for word in sorted(word_counts.keys()):
+            f.write(f"{word}\t{word_counts[word]}\n")
+
+    print(f"\nProcessamento concluido. Resultados em: {output_file}")
+    print(f"Total de palavras unicas: {len(word_counts)}")
+
+    print("\nTop 10 palavras mais frequentes:")
+    top10 = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    for i, (word, count) in enumerate(top10, 1):
+        print(f"  {i:2}. {word}: {count}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='MapReduce Word Count')
-    parser.add_argument('--input', default='data/input.txt', 
-                       help='Arquivo de entrada')
-    parser.add_argument('--output', default='data/output.txt', 
-                       help='Arquivo de saída')
-    
+    parser.add_argument('--input', default='data/input.txt',
+                        help='Arquivo de entrada')
+    parser.add_argument('--output', default='data/output.txt',
+                        help='Arquivo de saida')
+
     args = parser.parse_args()
     run_mapreduce(args.input, args.output)

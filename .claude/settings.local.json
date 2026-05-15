@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python mapreduce_runner.py)",
+      "Bash(python -c ' *)",
+      "Bash(python mapper.py)",
+      "Bash(python reducer.py)"
+    ]
+  }
+}

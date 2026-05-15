@@ -9,7 +9,7 @@ from pathlib import Path
 
 def generate_test_file(size_mb, filename):
     """Gera arquivo de teste com tamanho específico"""
-    words = ["data", "big", "python", "docker", "mapreduce"] * 100
+    words = ["data", "big", "python", "hadoop", "mapreduce"] * 100
     
     target_size = size_mb * 1024 * 1024  # Converte MB para bytes
     current_size = 0
