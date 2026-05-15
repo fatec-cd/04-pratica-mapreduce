@@ -8,6 +8,13 @@ import argparse
 from pathlib import Path
 from collections import defaultdict
 
+# Lista simples de stopwords em português (artigos, preposições, conectivos)
+STOPWORDS = {
+    'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas',
+    'de', 'da', 'do', 'das', 'dos', 'em', 'no', 'na', 'nos', 'nas',
+    'por', 'para', 'com', 'e', 'que', 'se', 'me', 'te', 'lhe', 'é'
+}
+
 
 def run_map_phase(input_file):
     """
@@ -20,6 +27,8 @@ def run_map_phase(input_file):
             line = line.strip().lower()
             words = re.findall(r'\b\w+\b', line)
             for word in words:
+                if word in STOPWORDS:
+                    continue
                 pairs.append((word, 1))
     return pairs
 
